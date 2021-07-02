@@ -4,6 +4,8 @@ from flask import Flask, render_template, request, redirect, url_for, session
 import re
 import pyodbc
 import strconn
+import runSqlQry
+
 
 
 app = Flask(__name__)
@@ -22,17 +24,12 @@ def login():
 		password = request.form['password']
 
 
+		qryResult = runSqlQry.runQry('SELECT * FROM accounts WHERE username = ? AND password = ?', (username, password))
 
-
-		connectionString = strconn.GetConnectionString()
-		conn = pyodbc.connect(connectionString)
-		cursor = conn.cursor()
-		cursor.execute('SELECT * FROM accounts WHERE username = ? AND password = ?', (username, password))
-		account = cursor.fetchone()
-		if account:
+		if qryResult:
 			session['loggedin'] = True
-			session['id'] = account.id
-			session['username'] = account.username
+			session['id'] = qryResult.id
+			session['username'] = qryResult.username
 			msg = 'Logged in successfully !'
 			return render_template('index.html', msg = msg)
 		else:
@@ -60,14 +57,9 @@ def register():
 		country = request.form['country']	
 		postalcode = request.form['postalcode']
 		
-
-		connectionString = strconn.GetConnectionString()
-		conn = pyodbc.connect(connectionString)
-		cursor = conn.cursor()
-
-		cursor.execute('SELECT * FROM accounts WHERE username = ?', (username))
-		account = cursor.fetchone()
-		if account:
+		qryResult = runSqlQry.runQry('SELECT * FROM accounts WHERE username = ?', (username))
+		
+		if qryResult:
 			msg = 'Account already exists !'
 		elif not re.match(r'[^@]+@[^@]+\.[^@]+', email):
 			msg = 'Invalid email address !'
@@ -93,13 +85,9 @@ def index():
 def display():
 	if 'loggedin' in session:
     		
-		connectionString = strconn.GetConnectionString()
-		conn = pyodbc.connect(connectionString)
-		cursor = conn.cursor()
-
-		cursor.execute('SELECT * FROM accounts WHERE id = ?', (session['id'] ))
-		account = cursor.fetchone()	
-		return render_template("display.html", account = account)
+		qryResult = runSqlQry.runQry('SELECT * FROM accounts WHERE id = ?', (session['id'] ))
+			
+		return render_template("display.html", qryResult = qryResult)
 	return redirect(url_for('login'))
 
 @app.route("/update", methods =['GET', 'POST'])
@@ -117,13 +105,9 @@ def update():
 			country = request.form['country']	
 			postalcode = request.form['postalcode'] 
 				
-			connectionString = strconn.GetConnectionString()
-			conn = pyodbc.connect(connectionString)
-			cursor = conn.cursor()
-
-			cursor.execute('SELECT * FROM accounts WHERE username = ?', (username))
-			account = cursor.fetchone()
-			if account:
+			qryResult = runSqlQry.runQry('SELECT * FROM accounts WHERE username = ?', (username))
+			
+			if qryResult:
 				msg = 'Account already exists !'
 			elif not re.match(r'[^@]+@[^@]+\.[^@]+', email):
 				msg = 'Invalid email address !'
